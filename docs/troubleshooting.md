@@ -2,7 +2,6 @@
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Random resets/freezes, no log; `driver own failed` | M.2 card not screwed down, PCIe contact lost | screw the card down, check `lspci -vv` link status |
 | `iw dev` shows no Wi-Fi interface | kernel < 6.7, no `mt7925e` | backports kernel 6.12, reboot |
 | Interface exists, AP won't start | firmware missing | `mediatek/mt7925/*` in `/lib/firmware` |
 | Client: "connection failed" on 6 GHz | SAE without H2E | `sae_pwe=2` (or `1`) |

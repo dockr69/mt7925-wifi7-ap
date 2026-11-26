@@ -196,26 +196,7 @@ Measured with one Wi-Fi 7 client (an iPhone) next to the AP (6 GHz, 160 MHz, 2×
 With iperf3 *to the AP* the board terminates TCP itself, so this is CPU-bound
 on the 4× Cortex-A55 – the MT7925 does a lot in hardware.
 
-## 14. Screw the M.2 card down
-
-An M.2 card that is only pushed into the slot – no screw on the standoff – can
-lose its PCIe contact. On the RK3568 that does not produce a clean error: the
-board **resets or freezes without a single log line**, or hostapd reports
-`state=ENABLED` while nobody can see the network. The only trace, right
-before a freeze:
-
-```
-mt7925e 0000:01:00.0: driver own failed
-mt7925e 0000:01:00.0: driver own failed
-...
-```
-
-With the card screwed down: no more resets, `lspci -vv` shows a clean link
-(`LnkSta: Speed 5GT/s, Width x1`, no `CESta`/`UESta` errors), and the numbers
-above. If you see random resets, check the screw and the U.FL antenna plugs
-**before** blaming the driver.
-
-## 15. `systemctl` without sudo hangs in non-TTY sessions
+## 14. `systemctl` without sudo hangs in non-TTY sessions
 
 ```
 Failed to restart hostapd.service: Interactive authentication required.
@@ -224,7 +205,7 @@ Failed to restart hostapd.service: Interactive authentication required.
 Over SSH without a TTY, PolicyKit waits for interactive auth and the command
 seems to hang forever. Always use `sudo`.
 
-## 16. Handy checks
+## 15. Handy checks
 
 ```bash
 lspci -nn | grep 14c3                 # card present?

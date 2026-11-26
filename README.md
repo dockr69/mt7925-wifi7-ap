@@ -40,7 +40,6 @@ Not bad for a quad Cortex-A55 board.
 | 160 MHz | `op_class=134` + `he_oper_chwidth=2` – otherwise clients fall back to 80 MHz |
 | Bands | **one AP at a time** per card (5 **or** 6 GHz) |
 | 320 MHz / MLO | not advertised by the driver in 6.12 / not tested |
-| Hardware | **screw the M.2 card down** – a loose card causes silent resets and freezes |
 
 All the details – with the original error messages – are in **[docs/learnings.md](docs/learnings.md)**.
 
