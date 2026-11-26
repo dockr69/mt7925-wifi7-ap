@@ -1,0 +1,17 @@
+[Unit]
+Description=NAT/forwarding for the Wi-Fi access point (wlan-ap-nat)
+After=network-online.target hostapd.service
+Wants=network-online.target hostapd.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Without a running hostapd there is no AP interface yet -> retry instead of failing for good
+Environment=AP_IFACE=wlp1s0
+Restart=on-failure
+RestartSec=5
+ExecStart=/usr/local/sbin/wlan-ap-nat start
+ExecStop=/usr/local/sbin/wlan-ap-nat stop
+
+[Install]
+WantedBy=multi-user.target

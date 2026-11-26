@@ -1,0 +1,24 @@
+#!/bin/bash
+# Switch the access point band:  wlan-ap-band 5 | 6
+# The MT7925 runs one AP interface at a time, so this swaps the active hostapd config.
+set -eu
+export PATH=$PATH:/usr/sbin:/sbin
+
+case "${1:-}" in
+  5) SRC=/etc/hostapd/ap-5g.conf ;;
+  6) SRC=/etc/hostapd/ap-6g.conf ;;
+  *) echo "Usage: $0 5|6"; exit 1 ;;
+esac
+
+[ -f "$SRC" ] || { echo "missing: $SRC (run scripts/setup.sh first)"; exit 1; }
+cp "$SRC" /etc/hostapd/hostapd.conf
+systemctl restart hostapd
+sleep 2
+
+IFACE=$(iw dev 2>/dev/null | awk '/^Interface/{i=$2} /type AP/{print i; exit}')
+[ -n "${IFACE:-}" ] || IFACE="${AP_IFACE:-wlp1s0}"
+
+echo "--- hostapd: $(systemctl is-active hostapd) ---"
+hostapd_cli -p /run/hostapd -i "$IFACE" status 2>/dev/null \
+  | grep -E '^(state|ssid\[0\]|freq|channel|ieee80211be)=' || true
+iw dev "$IFACE" info 2>/dev/null | grep -E 'ssid|channel|txpower' || true

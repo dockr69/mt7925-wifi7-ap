@@ -1,0 +1,42 @@
+#!/bin/bash
+# Quick diagnosis of the access point
+export PATH=$PATH:/usr/sbin:/sbin
+
+IFACE=$(iw dev 2>/dev/null | awk '/^Interface/{i=$2} /type AP/{print i; exit}')
+[ -n "${IFACE:-}" ] || IFACE="${AP_IFACE:-$(iw dev 2>/dev/null | awk '/^Interface/{print $2; exit}')}"
+
+echo "== Services =="
+for s in hostapd dnsmasq wlan-ap-nat.service; do
+  printf '  %-20s %s\n' "$s" "$(systemctl is-active "$s" 2>/dev/null)"
+done
+HOSTAPD_PID=$(cat /run/hostapd.pid 2>/dev/null)
+[ -n "$HOSTAPD_PID" ] && echo "  hostapd binary       $(readlink -f /proc/"$HOSTAPD_PID"/exe) ($("$(readlink -f /proc/"$HOSTAPD_PID"/exe)" -v 2>&1 | head -1))"
+
+echo
+echo "== AP =="
+if [ -n "${IFACE:-}" ]; then
+  hostapd_cli -p /run/hostapd -i "$IFACE" status 2>/dev/null \
+    | grep -E '^(state|ssid\[0\]|freq|channel|ieee80211ax|ieee80211be)=' | sed 's/^/  /'
+  iw dev "$IFACE" info 2>/dev/null | grep -E 'channel|txpower' | sed 's/^\s*/  /'
+else
+  echo "  no Wi-Fi interface"
+fi
+
+echo
+echo "== IP / forwarding =="
+ip -4 -br addr show "${IFACE:-lo}" 2>/dev/null | sed 's/^/  /'
+echo "  ip_forward: $(sysctl -n net.ipv4.ip_forward 2>/dev/null)"
+
+echo
+echo "== NAT =="
+iptables -t nat -S POSTROUTING 2>/dev/null | grep MASQUERADE | sed 's/^/  /'
+iptables -S FORWARD 2>/dev/null | grep "${IFACE:-wlp}" | sed 's/^/  /'
+
+echo
+echo "== Clients =="
+iw dev "${IFACE:-wlp1s0}" station dump 2>/dev/null \
+  | grep -E '^Station|signal:|tx bitrate|rx bitrate' | sed 's/^/  /' || echo "  none"
+
+echo
+echo "== Recent DHCP leases =="
+journalctl -u dnsmasq -n 200 --no-pager 2>/dev/null | grep -i 'DHCPACK' | tail -5 | sed 's/^/  /' || echo "  none"

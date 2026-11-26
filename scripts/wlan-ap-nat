@@ -1,0 +1,43 @@
+#!/bin/bash
+# NAT/forwarding for the access point:  wlan-ap-nat start | stop
+# The uplink is taken from the default route at runtime (end0, end1, enP… – no hardcoding).
+set -u
+export PATH=$PATH:/usr/sbin:/sbin
+STATE=/run/wlan-ap-nat.state
+
+detect_wlan()   { iw dev 2>/dev/null | awk '/^Interface/{i=$2} /type AP/{print i; exit}'; }
+detect_uplink() { ip route show default | awk '{print $5; exit}'; }
+
+start() {
+  local wlan uplink
+  wlan="${AP_IFACE:-$(detect_wlan)}"
+  uplink="${UPLINK_IFACE:-$(detect_uplink)}"
+  [ -n "$wlan" ]   || { echo "no AP interface found"; exit 1; }
+  [ -n "$uplink" ] || { echo "no uplink (default route) found"; exit 1; }
+  echo "$wlan $uplink" > "$STATE"
+
+  iptables -t nat -C POSTROUTING -o "$uplink" -j MASQUERADE 2>/dev/null || \
+    iptables -t nat -A POSTROUTING -o "$uplink" -j MASQUERADE
+  iptables -C FORWARD -i "$wlan" -o "$uplink" -j ACCEPT 2>/dev/null || \
+    iptables -A FORWARD -i "$wlan" -o "$uplink" -j ACCEPT
+  iptables -C FORWARD -i "$uplink" -o "$wlan" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || \
+    iptables -A FORWARD -i "$uplink" -o "$wlan" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+  sysctl -q -w net.ipv4.ip_forward=1
+  echo "NAT: $wlan -> $uplink"
+}
+
+stop() {
+  local wlan="" uplink=""
+  [ -f "$STATE" ] && read -r wlan uplink < "$STATE"
+  [ -n "$uplink" ] || exit 0
+  iptables -t nat -D POSTROUTING -o "$uplink" -j MASQUERADE 2>/dev/null || true
+  iptables -D FORWARD -i "$wlan" -o "$uplink" -j ACCEPT 2>/dev/null || true
+  iptables -D FORWARD -i "$uplink" -o "$wlan" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || true
+  rm -f "$STATE"
+}
+
+case "${1:-}" in
+  start) start ;;
+  stop)  stop  ;;
+  *) echo "Usage: $0 start|stop"; exit 1 ;;
+esac
