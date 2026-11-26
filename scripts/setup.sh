@@ -54,6 +54,7 @@ fi
 
 # --- packages + firmware -----------------------------------------------------
 log "Packages"
+apt-get update -qq
 apt-get install -y -qq iw rfkill hostapd dnsmasq iptables curl >/dev/null
 
 log "MT7925 firmware"

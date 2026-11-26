@@ -12,6 +12,7 @@ SRC=/usr/local/src
 export DEBIAN_FRONTEND=noninteractive
 
 echo "==> Build dependencies"
+apt-get update -qq
 apt-get install -y -qq build-essential pkg-config libnl-3-dev libnl-genl-3-dev \
   libnl-route-3-dev libssl-dev curl >/dev/null
 
