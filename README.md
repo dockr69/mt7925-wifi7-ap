@@ -22,8 +22,8 @@
 |---|---|
 | **Standard** | Wi-Fi 7 (EHT), 2×2 MIMO |
 | **Band / width** | 6 GHz, channel 37, **160 MHz** (5 GHz / 80 MHz as alternative) |
-| **Link rate** | 1200 Mbit/s EHT-MCS 11 |
-| **iperf3, AP → client, 4 streams** | **≈ 1.2 Gbit/s** |
+| **Link rate** | **2402 Mbit/s** EHT-MCS 11, 2×2 |
+| **iperf3, AP → client, 4 streams** | **≈ 1.2 Gbit/s**, peak **1.56 Gbit/s** |
 | **Internet through NAT** | ≈ 910 Mbit/s – the Gigabit uplink is the limit |
 | **Test hardware** | Radxa ROCK 3A (RK3568, 4× Cortex-A55) – see [test hardware](docs/testhardware.md) |
 
@@ -40,6 +40,7 @@ Not bad for a quad Cortex-A55 board.
 | 160 MHz | `op_class=134` + `he_oper_chwidth=2` – otherwise clients fall back to 80 MHz |
 | Bands | **one AP at a time** per card (5 **or** 6 GHz) |
 | 320 MHz / MLO | not advertised by the driver in 6.12 / not tested |
+| Hardware | **screw the M.2 card down** – a loose card causes silent resets and freezes |
 
 All the details – with the original error messages – are in **[docs/learnings.md](docs/learnings.md)**.
 

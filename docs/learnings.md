@@ -64,11 +64,11 @@ eht_oper_chwidth=2               # same encoding as he_oper_chwidth (2 = 160 MHz
 eht_oper_centr_freq_seg0_idx=47
 ```
 
-Result, straight from `iw dev wlp1s0 station dump`:
+Result under load, straight from `iw dev wlp1s0 station dump`:
 
 ```
-tx bitrate: 1200.9 MBit/s 80MHz EHT-MCS 11 EHT-NSS 2 EHT-GI 0
-rx bitrate:  864.6 MBit/s 160MHz EHT-MCS 4 EHT-NSS 2 EHT-GI 0
+tx bitrate: 2401.9 MBit/s 160MHz EHT-MCS 11 EHT-NSS 2 EHT-GI 0
+rx bitrate: 2161.3 MBit/s 160MHz EHT-MCS 10 EHT-NSS 2 EHT-GI 0
 ```
 
 Kernel 6.12 does **not** advertise 320 MHz for the MT7925 – 160 MHz is the maximum.
@@ -185,18 +185,37 @@ EHT-MCS 11. Range at larger distances was not measured.
 
 ## 13. Performance
 
-Measured with one Wi-Fi 7 client next to the AP (6 GHz, 160 MHz, 2×2):
+Measured with one Wi-Fi 7 client (an iPhone) next to the AP (6 GHz, 160 MHz, 2×2):
 
 | Test | Result |
 |---|---|
-| `iperf3 -c 192.168.50.1 -R -P 4` (AP → client, 4 streams) | **≈ 1.2 Gbit/s** |
+| `iperf3 -c 192.168.50.1 -R -P 4` (AP → client, 4 streams) | **≈ 1.2 Gbit/s sustained, 1.56 Gbit/s peak** |
 | Internet download through NAT | ≈ 910 Mbit/s (Gigabit uplink is the limit) |
-| Link rate | 1200 Mbit/s EHT-MCS 11 / 160 MHz |
+| Link rate | **2402 / 2161 Mbit/s** (EHT-MCS 11 / 10, 160 MHz, 2×2) at −46 dBm |
 
 With iperf3 *to the AP* the board terminates TCP itself, so this is CPU-bound
 on the 4× Cortex-A55 – the MT7925 does a lot in hardware.
 
-## 14. `systemctl` without sudo hangs in non-TTY sessions
+## 14. Screw the M.2 card down
+
+An M.2 card that is only pushed into the slot – no screw on the standoff – can
+lose its PCIe contact. On the RK3568 that does not produce a clean error: the
+board **resets or freezes without a single log line**, or hostapd reports
+`state=ENABLED` while nobody can see the network. The only trace, right
+before a freeze:
+
+```
+mt7925e 0000:01:00.0: driver own failed
+mt7925e 0000:01:00.0: driver own failed
+...
+```
+
+With the card screwed down: no more resets, `lspci -vv` shows a clean link
+(`LnkSta: Speed 5GT/s, Width x1`, no `CESta`/`UESta` errors), and the numbers
+above. If you see random resets, check the screw and the U.FL antenna plugs
+**before** blaming the driver.
+
+## 15. `systemctl` without sudo hangs in non-TTY sessions
 
 ```
 Failed to restart hostapd.service: Interactive authentication required.
@@ -205,10 +224,11 @@ Failed to restart hostapd.service: Interactive authentication required.
 Over SSH without a TTY, PolicyKit waits for interactive auth and the command
 seems to hang forever. Always use `sudo`.
 
-## 15. Handy checks
+## 16. Handy checks
 
 ```bash
 lspci -nn | grep 14c3                 # card present?
+sudo lspci -vv -s 01:00.0 | grep -E 'LnkSta|CESta|UESta'   # PCIe link healthy?
 lsusb | grep 0e8d                     # the MT7925 also shows up on USB (Bluetooth)
 iw list | grep -E 'HE Iftypes|EHT Iftypes'
 iw reg get                            # country code / channels
